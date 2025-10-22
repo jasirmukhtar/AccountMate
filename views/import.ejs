@@ -1,0 +1,8 @@
+<%- include('partials/navbar') %>
+<div class="p-6 max-w-md mx-auto">
+  <h2 class="text-2xl font-bold mb-4">Import Parties</h2>
+  <form action="/suppliers/import" method="POST" enctype="multipart/form-data" class="space-y-4">
+    <input type="file" name="file" accept=".csv,.xlsx,.xls" required class="border p-2 w-full">
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Import</button>
+  </form>
+</div>
