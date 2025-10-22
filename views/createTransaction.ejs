@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Transaction</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <style>
+    body { background-color: #f5f6fa; }
+    .container { margin-top: 40px; max-width: 600px; }
+    .toggle-btn-group button.active { background-color: #007bff; color: white; }
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2 class="text-center mb-4">Create Transaction</h2>
+
+  <form id="transactionForm">
+
+        <!-- Supplier Dropdown -->
+    <div class="mb-3">
+      <label for="supplier" class="form-label">Supplier</label>
+      <input type="text" id="supplierSearch" placeholder="Search supplier..." class="form-control mb-1">
+      <select name="supplier_id" id="supplierDropdown" class="form-select" required>
+        <!-- Options populated dynamically -->
+      </select>
+    </div>
+    
+    <!-- Amount -->
+    <div class="mb-3">
+      <label for="amount" class="form-label">Amount</label>
+      <input type="number" step="1" name="amount" id="amount" class="form-control" required>
+    </div>
+
+    <!-- Invoice No -->
+    <div class="mb-3">
+      <label for="invoice_no" class="form-label">Invoice No</label>
+      <input type="number" name="invoice_no" id="invoice_no" class="form-control" required>
+    </div>
+
+
+
+    <!-- Payment Type Toggle -->
+    <div class="mb-3">
+      <label class="form-label">Payment Type</label>
+      <div class="btn-group toggle-btn-group" role="group">
+        <button type="button" class="btn btn-outline-primary active" data-value="CR">CR</button>
+        <button type="button" class="btn btn-outline-primary" data-value="DR">DR</button>
+      </div>
+      <input type="hidden" name="payment_type" id="payment_type" value="CR">
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">Create Transaction</button>
+  </form>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script>
+  let suppliersList = [];
+
+  // ---------- Populate supplier dropdown ----------
+  async function loadSuppliers() {
+    try {
+      const res = await fetch('/api/supplier');
+      suppliersList = await res.json();
+      const dropdown = document.getElementById('supplierDropdown');
+      suppliersList.forEach(s => {
+        const option = document.createElement('option');
+        option.value = Number(s.supplier_id);
+        option.text = s.supplier_name;
+        dropdown.add(option);
+      });
+    } catch (err) {
+      console.error("Error loading suppliers", err);
+    }
+  }
+  loadSuppliers();
+
+  // ---------- Searchable dropdown with auto-select ----------
+  const searchInput = document.getElementById('supplierSearch');
+  const dropdown = document.getElementById('supplierDropdown');
+
+  searchInput.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    let firstMatch = null;
+
+    Array.from(dropdown.options).forEach(option => {
+      const match = option.text.toLowerCase().includes(filter);
+      option.style.display = match ? '' : 'none';
+      if (match && !firstMatch) firstMatch = option;
+    });
+
+    // Auto-select first matching option
+    if (firstMatch) {
+      dropdown.value = firstMatch.value;
+    }
+  });
+
+  // ---------- Toggle CR / DR ----------
+  const toggleButtons = document.querySelectorAll('.toggle-btn-group button');
+  const hiddenInput = document.getElementById('payment_type');
+
+  toggleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      hiddenInput.value = btn.getAttribute('data-value');
+    });
+  });
+
+  // ---------- Form submit ----------
+const form = document.getElementById('transactionForm');
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate fields (keep this as-is)
+    const amountInput = document.getElementById('amount'); // Get reference to amount input
+    const invoiceInput = document.getElementById('invoice_no'); // Get reference to invoice input
+    const amount = amountInput.value;
+    const invoice_no = invoiceInput.value;
+    const supplier_id = dropdown.value;
+    const payment_type = hiddenInput.value;
+
+    if (!amount || !invoice_no || !supplier_id || !payment_type) {
+        showToast("Please fill all fields!", true);
+        return;
+    }
+
+    const payload = {
+        amount: Number(amount),
+        invoice_no: Number(invoice_no),
+        supplier_id: Number(supplier_id),
+        payment_type
+    };
+
+    try {
+        const res = await fetch('/api/transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast("Transaction created successfully!");
+            
+            // ----------------------------------------------------
+            // 💡 CRITICAL CHANGE: Instead of form.reset(), 
+            //    manually clear only the non-preserved fields.
+            //    This keeps the hiddenInput (payment_type) and 
+            //    the supplier_id (dropdown) selected.
+            // ----------------------------------------------------
+            
+            amountInput.value = ''; // Clear the amount field
+            invoiceInput.value = ''; // Clear the invoice number field
+            
+            // The hiddenInput.value and the active toggle button state 
+            // are automatically preserved since we skipped form.reset()
+            // and the explicit payment type reset.
+            
+        } else {
+            // Error case: The form fields are naturally preserved 
+            // (no reset is called), including the payment type.
+            showToast(data.message, true);
+        }
+    } catch (err) {
+        showToast("Error creating transaction", true);
+        console.error(err);
+    }
+});
+
+  // ---------- Toast message ----------
+  function showToast(message, isError = false) {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${isError ? 'danger' : 'success'} border-0 mb-2`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+    toastContainer.appendChild(toast);
+
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    bsToast._element.addEventListener('hidden.bs.toast', () => toast.remove());
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -8,6 +8,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PaymentType {
+  CR
+  DR
+}
+
 model supplier {
   supplier_id     Int       @id @default(autoincrement())
   supplier_name   String    @db.VarChar(100)
@@ -16,4 +21,18 @@ model supplier {
   opening_balance Decimal?  @default(0.00) @db.Decimal(12, 2)
   created_at      DateTime? @default(now()) @db.Timestamp(0)
   updated_at      DateTime? @default(now()) @db.Timestamp(0)
+
+  transactions   Transaction[]
+}
+
+model Transaction {
+  transaction_id            Int           @id @default(autoincrement())
+  invoice_no    Int
+  payment_type  PaymentType
+  supplier_id   Int
+  amount        Int
+
+  supplier      supplier      @relation(fields: [supplier_id], references: [supplier_id])
+
+  @@unique([supplier_id, payment_type, invoice_no])
 }

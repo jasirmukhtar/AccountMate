@@ -5,6 +5,7 @@ async function getAllSuppliers() {
   return await prisma.supplier.findMany({
 
     select: {
+      supplier_id: true,
       supplier_name: true,
       contact_number: true,
       address: true
