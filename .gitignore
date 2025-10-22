@@ -39,3 +39,5 @@ temp/
 .cache/
 .npm/
 .pnpm-store/
+
+/generated/prisma

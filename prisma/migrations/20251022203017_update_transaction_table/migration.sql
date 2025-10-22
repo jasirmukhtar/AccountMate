@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `transaction` ADD COLUMN `invoiceDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
