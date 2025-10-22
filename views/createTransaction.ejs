@@ -20,7 +20,7 @@
 
   <form id="transactionForm">
 
-        <!-- Supplier Dropdown -->
+    <!-- Supplier Dropdown -->
     <div class="mb-3">
       <label for="supplier" class="form-label">Supplier</label>
       <input type="text" id="supplierSearch" placeholder="Search supplier..." class="form-control mb-1">
@@ -28,7 +28,7 @@
         <!-- Options populated dynamically -->
       </select>
     </div>
-    
+
     <!-- Amount -->
     <div class="mb-3">
       <label for="amount" class="form-label">Amount</label>
@@ -41,7 +41,11 @@
       <input type="number" name="invoice_no" id="invoice_no" class="form-control" required>
     </div>
 
-
+    <!-- Invoice Date -->
+    <div class="mb-3">
+      <label for="invoiceDate" class="form-label">Invoice Date</label>
+      <input type="date" id="invoiceDate" name="invoiceDate" class="form-control" required>
+    </div>
 
     <!-- Payment Type Toggle -->
     <div class="mb-3">
@@ -113,67 +117,63 @@
     });
   });
 
+  // ---------- Preselect invoiceDate to today ----------
+  const invoiceDateInput = document.getElementById('invoiceDate');
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  invoiceDateInput.value = today;
+
   // ---------- Form submit ----------
-const form = document.getElementById('transactionForm');
+  const form = document.getElementById('transactionForm');
 form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Validate fields (keep this as-is)
-    const amountInput = document.getElementById('amount'); // Get reference to amount input
-    const invoiceInput = document.getElementById('invoice_no'); // Get reference to invoice input
-    const amount = amountInput.value;
-    const invoice_no = invoiceInput.value;
-    const supplier_id = dropdown.value;
-    const payment_type = hiddenInput.value;
+  const amountInput = document.getElementById('amount');
+  const invoiceInput = document.getElementById('invoice_no');
+  const invoiceDate = invoiceDateInput.value;
+  const amount = amountInput.value;
+  const invoice_no = invoiceInput.value;
+  const supplier_id = dropdown.value;
+  const payment_type = hiddenInput.value;
 
-    if (!amount || !invoice_no || !supplier_id || !payment_type) {
-        showToast("Please fill all fields!", true);
-        return;
+  if (!amount || !invoice_no || !supplier_id || !payment_type || !invoiceDate) {
+    showToast("Please fill all fields!", true);
+    return;
+  }
+
+  const payload = {
+    amount: Number(amount),
+    invoice_no: Number(invoice_no),
+    supplier_id: Number(supplier_id),
+    payment_type,
+    invoiceDate
+  };
+
+  try {
+    const res = await fetch('/api/transaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast("Transaction created successfully!");
+
+      // Reset form fields
+      amountInput.value = '';
+      invoiceInput.value = '';
+      invoiceDateInput.value = today; // reset date to today
+      dropdown.selectedIndex = 0;      // reset supplier to first option
+    } else {
+      showToast(data.message || "Error creating transaction", true);
     }
-
-    const payload = {
-        amount: Number(amount),
-        invoice_no: Number(invoice_no),
-        supplier_id: Number(supplier_id),
-        payment_type
-    };
-
-    try {
-        const res = await fetch('/api/transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            showToast("Transaction created successfully!");
-            
-            // ----------------------------------------------------
-            // 💡 CRITICAL CHANGE: Instead of form.reset(), 
-            //    manually clear only the non-preserved fields.
-            //    This keeps the hiddenInput (payment_type) and 
-            //    the supplier_id (dropdown) selected.
-            // ----------------------------------------------------
-            
-            amountInput.value = ''; // Clear the amount field
-            invoiceInput.value = ''; // Clear the invoice number field
-            
-            // The hiddenInput.value and the active toggle button state 
-            // are automatically preserved since we skipped form.reset()
-            // and the explicit payment type reset.
-            
-        } else {
-            // Error case: The form fields are naturally preserved 
-            // (no reset is called), including the payment type.
-            showToast(data.message, true);
-        }
-    } catch (err) {
-        showToast("Error creating transaction", true);
-        console.error(err);
-    }
+  } catch (err) {
+    showToast("Error creating transaction", true);
+    console.error(err);
+  }
 });
+
 
   // ---------- Toast message ----------
   function showToast(message, isError = false) {

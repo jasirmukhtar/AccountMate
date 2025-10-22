@@ -21,6 +21,8 @@ app.use("/api/transaction", transactionRoutes);
 app.use("/", supplierViewRoutes);
 // Create Transaction View
 app.use("/", transactionViewRoutes);
+// Transaction Views
+app.use("/", transactionViewRoutes);
 
 app.listen(3000, ()=>{
     console.log("Server is listening on port 3000");

@@ -28,6 +28,7 @@ model supplier {
 model Transaction {
   transaction_id            Int           @id @default(autoincrement())
   invoice_no    Int
+  invoice_date    DateTime    @default(now()) 
   payment_type  PaymentType
   supplier_id   Int
   amount        Int
