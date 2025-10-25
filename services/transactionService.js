@@ -41,15 +41,39 @@ async function getTransactions(page = 1, limit = 10) {
 }
 
 async function getTransactionById(id) {
+
+  const txId = Number(id);
   return await prisma.transaction.findUnique({
-    where: { transaction_id: id }, 
-    include: { supplier: true }   
+    where: { transaction_id: txId },
+    include: { supplier: {
+      select: { supplier_id: true, supplier_name: true, address: true }
+    } }   
   });
+}
+
+async function updateTransaction(id, payload) {
+
+  const txId = Number(id);
+  const existing = await prisma.transaction.findUnique({
+    where: { transaction_id: txId }
+  });
+
+  if (!existing) {
+    throw new Error("Transaction not found");
+  }
+
+  const updated = await prisma.transaction.update({
+    where: { transaction_id: txId },
+    data: payload
+  });
+
+  return updated;
 }
 
 
 module.exports = {
     createTransaction,
     getTransactions,
-    getTransactionById
+    getTransactionById,
+    updateTransaction
 };

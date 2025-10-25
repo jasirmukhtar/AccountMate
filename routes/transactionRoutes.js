@@ -6,5 +6,6 @@ router.post('/', TransactionController.createNewTransaction);
 
 router.get('/', TransactionController.getTransactions);
 router.get('/:id', TransactionController.getTransactionById);
+router.put('/:id', TransactionController.updateTransactionById);
 
 module.exports = router;

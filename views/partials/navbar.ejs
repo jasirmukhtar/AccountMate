@@ -1,7 +1,23 @@
-<nav class="bg-blue-600 p-4 text-white flex justify-between">
-  <h1 class="text-xl font-bold">Party Manager</h1>
-  <div>
-    <a href="/suppliers/create" class="mr-4 hover:underline">Create Party</a>
-    <a href="/suppliers/import" class="hover:underline">Import Parties</a>
+<nav class="bg-gray-800 shadow-lg text-white">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+
+      <h1 class="text-2xl font-extrabold tracking-wider uppercase text-blue-400">
+        Party Manager
+      </h1>
+
+      <div class="flex space-x-6">
+        <a href="/transaction" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+          Create New Transaction
+        </a>
+        <a href="/transactions" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+          All Transactions
+        </a>
+        <a href="/suppliers" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+          All Suppliers
+        </a>
+      </div>
+
+    </div>
   </div>
 </nav>

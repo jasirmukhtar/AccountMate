@@ -9,6 +9,8 @@
     body { background-color: #f5f6fa; }
     .container { margin-top: 40px; max-width: 900px; }
     #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+    tr.transaction-row { cursor: pointer; }
+    tr.transaction-row:hover { background-color: #f1f1f1; }
   </style>
 </head>
 <body>
@@ -29,17 +31,60 @@
         <th>Amount</th>
       </tr>
     </thead>
-    <tbody id="transactionTableBody">
-      <!-- Rows populated dynamically -->
-    </tbody>
+    <tbody id="transactionTableBody"></tbody>
   </table>
 
   <!-- Pagination -->
   <nav>
-    <ul class="pagination justify-content-center" id="paginationControls">
-      <!-- Pagination buttons dynamically added -->
-    </ul>
+    <ul class="pagination justify-content-center" id="paginationControls"></ul>
   </nav>
+</div>
+
+<!-- 🧩 Modal for viewing/editing a transaction -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="transactionModalLabel">Transaction Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="transactionForm">
+          <div class="mb-3">
+            <label for="supplier" class="form-label">Supplier</label>
+            <input type="text" id="supplier" class="form-control" disabled>
+          </div>
+
+          <div class="mb-3">
+            <label for="invoice_no" class="form-label">Invoice No</label>
+            <input type="number" id="invoice_no" class="form-control" required disabled>
+          </div>
+
+          <div class="mb-3">
+            <label for="invoice_date" class="form-label">Invoice Date</label>
+            <input type="date" id="invoice_date" class="form-control" required disabled>
+          </div>
+
+          <div class="mb-3">
+            <label for="payment_type" class="form-label">Payment Type</label>
+            <select id="payment_type" class="form-select" disabled>
+              <option value="CR">CR</option>
+              <option value="DR">DR</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number" id="amount" class="form-control" required disabled>
+          </div>
+
+          <button type="button" class="btn btn-warning w-100" id="editBtn">Edit</button>
+          <button type="submit" class="btn btn-success w-100 mt-2" id="saveBtn" style="display:none;">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast container -->
@@ -48,6 +93,7 @@
 <script>
   let currentPage = 1;
   const limit = 10;
+  let currentTransactionId = null;
 
   async function loadTransactions(page = 1) {
     try {
@@ -58,10 +104,13 @@
       tbody.innerHTML = '';
 
       if (!data.transactions.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center">No transactions found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center">No transactions found.</td></tr>`;
       } else {
         data.transactions.forEach((tx, idx) => {
-          const row = `<tr>
+          const row = document.createElement('tr');
+          row.classList.add('transaction-row');
+          row.dataset.id = tx.transaction_id;
+          row.innerHTML = `
             <td>${(data.page-1)*limit + idx + 1}</td>
             <td>${tx.transaction_id}</td>
             <td>${tx.supplier.supplier_name || ''}</td>
@@ -69,18 +118,90 @@
             <td>${tx.invoice_date ? new Date(tx.invoice_date).toLocaleDateString() : ''}</td>
             <td>${tx.payment_type}</td>
             <td>${tx.amount}</td>
-          </tr>`;
-          tbody.insertAdjacentHTML('beforeend', row);
+          `;
+          tbody.appendChild(row);
         });
       }
 
-      // Setup pagination
+      // Row click → open modal
+      document.querySelectorAll('.transaction-row').forEach(row => {
+        row.addEventListener('click', () => openTransactionModal(row.dataset.id));
+      });
+
       setupPagination(data.page, data.totalPages);
     } catch (err) {
       console.error("Error loading transactions:", err);
       showToast("Error loading transactions", true);
     }
   }
+
+  async function openTransactionModal(transactionId) {
+    try {
+      const res = await fetch(`/api/transaction/${transactionId}`);
+      const tx = await res.json();
+
+      if (!res.ok) return showToast("Failed to fetch transaction", true);
+
+      currentTransactionId = tx.transaction_id;
+
+      // Populate modal fields
+      document.getElementById('supplier').value = tx.supplier.supplier_name || '';
+      document.getElementById('invoice_no').value = tx.invoice_no;
+      document.getElementById('invoice_date').value = tx.invoice_date.split('T')[0];
+      document.getElementById('payment_type').value = tx.payment_type;
+      document.getElementById('amount').value = tx.amount;
+
+      // Disable inputs
+      setFormDisabled(true);
+
+      new bootstrap.Modal(document.getElementById('transactionModal')).show();
+    } catch (err) {
+      console.error(err);
+      showToast("Error loading transaction", true);
+    }
+  }
+
+  function setFormDisabled(disabled) {
+    document.querySelectorAll('#transactionForm input, #transactionForm select').forEach(el => {
+      el.disabled = disabled;
+    });
+    document.getElementById('editBtn').style.display = disabled ? 'block' : 'none';
+    document.getElementById('saveBtn').style.display = disabled ? 'none' : 'block';
+  }
+
+  // Edit button → enable inputs
+  document.getElementById('editBtn').addEventListener('click', () => setFormDisabled(false));
+
+  // Save button → PUT API call
+  document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      invoice_no: Number(document.getElementById('invoice_no').value),
+      invoice_date: document.getElementById('invoice_date').value + "T00:00:00.000Z",
+      payment_type: document.getElementById('payment_type').value,
+      amount: Number(document.getElementById('amount').value)
+    };
+
+    try {
+      const res = await fetch(`/api/transaction/${currentTransactionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) return showToast(data.message || 'Error updating transaction', true);
+
+      showToast('Transaction updated successfully!');
+      setFormDisabled(true);
+      loadTransactions(currentPage);
+    } catch (err) {
+      console.error(err);
+      showToast('Error saving transaction', true);
+    }
+  });
 
   function setupPagination(current, totalPages) {
     const pagination = document.getElementById('paginationControls');
@@ -108,16 +229,14 @@
     loadTransactions(currentPage);
   }
 
-  // ---------- Toast message ----------
+  // Toast
   function showToast(message, isError = false) {
     const toastContainer = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast align-items-center text-bg-${isError ? 'danger' : 'success'} border-0 mb-2`;
     toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
     toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
     toastContainer.appendChild(toast);
 
     const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
@@ -125,7 +244,7 @@
     bsToast._element.addEventListener('hidden.bs.toast', () => toast.remove());
   }
 
-  // Load first page on start
+  // Load initial data
   loadTransactions(currentPage);
 </script>
 
