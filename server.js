@@ -22,6 +22,7 @@ app.use("/", supplierViewRoutes);
 // Transaction Views
 app.use("/", transactionViewRoutes);
 
+//Home Page
 app.get("/", (req, res)=>{
     res.render("index");
 });

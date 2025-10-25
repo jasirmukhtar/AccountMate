@@ -1,0 +1,235 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Balances</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f5f6fa; }
+    .container { margin-top: 40px; max-width: 800px; }
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="text-center mb-4">Supplier Balances</h2>
+
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Supplier Name</th>
+        <th>Balance</th>
+      </tr>
+    </thead>
+    <tbody id="supplierTableBody">
+      <tr><td colspan="3" class="text-center">Loading...</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2" class="text-end">Total Balance</th>
+        <th id="totalBalanceCell">0</th>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+async function loadSupplierBalances() {
+  try {
+    const res = await fetch('/api/supplier/balances/report', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    const tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = '';
+
+    if (!data.success || !data.suppliers || data.suppliers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center">No suppliers found</td></tr>`;
+      document.getElementById('totalBalanceCell').textContent = 0;
+      return;
+    }
+
+    data.suppliers.forEach((s, idx) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${s.supplier_name}</td>
+        <td>${Number(s.balance).toFixed(2)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('totalBalanceCell').textContent = Number(data.totalBalance || 0).toFixed(2);
+
+  } catch (err) {
+    console.error(err);
+    showToast("Error loading supplier balances", true);
+    const tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading supplier balances</td></tr>`;
+  }
+}
+
+// Toast function
+function showToast(message, isError=false) {
+  const toastContainer = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-bg-${isError?'danger':'success'} border-0 mb-2`;
+  toast.setAttribute('role','alert');
+  toast.setAttribute('aria-live','assertive');
+  toast.setAttribute('aria-atomic','true');
+  toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+  toastContainer.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast,{delay:3000});
+  bsToast.show();
+  bsToast._element.addEventListener('hidden.bs.toast',()=>toast.remove());
+}
+
+// Load balances on page load
+loadSupplierBalances();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+ -->
+
+
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Balances</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f5f6fa; }
+    .container { margin-top: 40px; max-width: 800px; }
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="text-center mb-4">Supplier Balances</h2>
+
+  <div class="mb-3 text-end">
+    <button class="btn btn-primary" id="generatePDFBtn">Generate PDF</button>
+  </div>
+
+  <table class="table table-bordered table-striped" id="supplierTable">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Supplier Name</th>
+        <th>Balance</th>
+      </tr>
+    </thead>
+    <tbody id="supplierTableBody">
+      <tr><td colspan="3" class="text-center">Loading...</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2" class="text-end">Total Balance</th>
+        <th id="totalBalanceCell">0</th>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<div id="toastContainer"></div>
+
+<!-- jsPDF CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+async function loadSupplierBalances() {
+  try {
+    const res = await fetch('/api/supplier/balances/report', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    const tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = '';
+
+    if (!data.success || !data.suppliers || data.suppliers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center">No suppliers found</td></tr>`;
+      document.getElementById('totalBalanceCell').textContent = 0;
+      return;
+    }
+
+    data.suppliers.forEach((s, idx) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${s.supplier_name}</td>
+        <td>${Number(s.balance).toFixed(2)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('totalBalanceCell').textContent = Number(data.totalBalance || 0).toFixed(2);
+
+  } catch (err) {
+    console.error(err);
+    showToast("Error loading supplier balances", true);
+    const tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading supplier balances</td></tr>`;
+  }
+}
+
+// ---------- Generate PDF ----------
+document.getElementById('generatePDFBtn').addEventListener('click', () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Add title
+  doc.setFontSize(18);
+  doc.text('Supplier Balances Report', 14, 22);
+
+  // Prepare table
+  const headers = [["#", "Supplier Name", "Balance"]];
+  const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
+    return Array.from(row.children).map(cell => cell.textContent);
+  });
+
+  // Add table
+  doc.autoTable({
+    startY: 30,
+    head: headers,
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [52, 58, 64] } // Bootstrap dark
+  });
+
+  // Save PDF
+  doc.save('supplier_balances.pdf');
+});
+
+// ---------- Toast function ----------
+function showToast(message, isError=false) {
+  const toastContainer = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-bg-${isError?'danger':'success'} border-0 mb-2`;
+  toast.setAttribute('role','alert');
+  toast.setAttribute('aria-live','assertive');
+  toast.setAttribute('aria-atomic','true');
+  toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+  toastContainer.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast,{delay:3000});
+  bsToast.show();
+  bsToast._element.addEventListener('hidden.bs.toast',()=>toast.remove());
+}
+
+// Load balances on page load
+loadSupplierBalances();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
