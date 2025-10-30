@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -16,7 +16,7 @@
   <h2 class="text-center mb-4">Supplier Balances</h2>
 
   <div class="mb-3 text-end">
-    <button class="btn btn-primary" id="generatePDFBtn">Generate PDF</button>
+    <button class="btn btn-success" id="generateExcelBtn">Generate Excel for All Suppliers</button>
   </div>
 
   <table class="table table-bordered table-striped" id="supplierTable">
@@ -41,19 +41,22 @@
 
 <div id="toastContainer"></div>
 
-<!-- jsPDF CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<!-- SheetJS CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.0/xlsx.full.min.js"></script>
 
 <script>
+let supplierData = [];
+
+// ---------- Load supplier balances ----------
 async function loadSupplierBalances() {
   try {
-    const res = await fetch('/api/supplier/balances/report', { cache: 'no-store' });
+    const res = await fetch('/api/supplier-balances', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
     const tbody = document.getElementById('supplierTableBody');
     tbody.innerHTML = '';
+    supplierData = [];
 
     if (!data.success || !data.suppliers || data.suppliers.length === 0) {
       tbody.innerHTML = `<tr><td colspan="3" class="text-center">No suppliers found</td></tr>`;
@@ -69,6 +72,12 @@ async function loadSupplierBalances() {
         <td>${Number(s.balance).toFixed(2)}</td>
       `;
       tbody.appendChild(row);
+
+      supplierData.push({
+        supplier_id: s.supplier_id,
+        supplier_name: s.supplier_name,
+        balance: Number(s.balance).toFixed(2)
+      });
     });
 
     document.getElementById('totalBalanceCell').textContent = Number(data.totalBalance || 0).toFixed(2);
@@ -81,32 +90,25 @@ async function loadSupplierBalances() {
   }
 }
 
-// ---------- Generate PDF ----------
-document.getElementById('generatePDFBtn').addEventListener('click', () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  // Add title
-  doc.setFontSize(18);
-  doc.text('Supplier Balances Report', 14, 22);
+// ---------- Generate Excel ----------
+document.getElementById('generateExcelBtn').addEventListener('click', () => {
+  if (!supplierData.length) {
+    showToast("No supplier data available", true);
+    return;
+  }
 
-  // Prepare table
-  const headers = [["#", "Supplier Name", "Balance"]];
-  const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
-    return Array.from(row.children).map(cell => cell.textContent);
+  supplierData.forEach(supplier => {
+    const wb = XLSX.utils.book_new();
+    const wsData = [
+      ["Supplier ID", "Supplier Name", "Balance"],
+      [supplier.supplier_id, supplier.supplier_name, supplier.balance]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "Balance");
+    XLSX.writeFile(wb, `${supplier.supplier_name.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx`);
   });
 
-  // Add table
-  doc.autoTable({
-    startY: 30,
-    head: headers,
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [52, 58, 64] } // Bootstrap dark
-  });
-
-  // Save PDF
-  doc.save('supplier_balances.pdf');
+  showToast("Excel files generated for all suppliers!");
 });
 
 // ---------- Toast function ----------

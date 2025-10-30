@@ -15,4 +15,8 @@ router.get("/balances-report", (req, res) => {
   res.render("balancesReport");
 });
 
+router.get("/all-suppliers-report", (req, res) => {
+  res.render("allSupplierExcelReports");
+});
+
 module.exports = router;
