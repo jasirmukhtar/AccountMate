@@ -19,11 +19,14 @@ app.use("/api/transaction", transactionRoutes);
 
 // Supplier Views
 app.use("/", supplierViewRoutes);
-// Create Transaction View
-app.use("/", transactionViewRoutes);
 // Transaction Views
 app.use("/", transactionViewRoutes);
 
+//Home Page
+app.get("/", (req, res)=>{
+    res.render("index");
+});
+
 app.listen(3000, ()=>{
     console.log("Server is listening on port 3000");
-})  
+});

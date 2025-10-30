@@ -7,4 +7,16 @@ router.get("/suppliers", (req, res) => {
   res.render("supplier");
 });
 
+router.get("/supplier/report", (req, res) => {
+  res.render("supplierReport");
+});
+
+router.get("/balances-report", (req, res) => {
+  res.render("balancesReport");
+});
+
+router.get("/all-suppliers-report", (req, res) => {
+  res.render("allSupplierExcelReports");
+});
+
 module.exports = router;
