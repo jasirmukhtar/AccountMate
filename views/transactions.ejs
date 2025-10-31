@@ -53,7 +53,9 @@
         <form id="transactionForm">
           <div class="mb-3">
             <label for="supplier" class="form-label">Supplier</label>
-            <input type="text" id="supplier" class="form-control" disabled>
+            <select id="supplier" class="form-select" disabled>
+              <option value="">Loading suppliers...</option>
+            </select>
           </div>
 
           <div class="mb-3">
@@ -123,7 +125,6 @@
         });
       }
 
-      // Row click → open modal
       document.querySelectorAll('.transaction-row').forEach(row => {
         row.addEventListener('click', () => openTransactionModal(row.dataset.id));
       });
@@ -132,6 +133,31 @@
     } catch (err) {
       console.error("Error loading transactions:", err);
       showToast("Error loading transactions", true);
+    }
+  }
+
+  // ✅ Load suppliers dynamically for dropdown
+  async function loadSuppliers(selectedSupplierId = null) {
+    const supplierSelect = document.getElementById('supplier');
+    supplierSelect.innerHTML = `<option value="">Loading suppliers...</option>`;
+
+    try {
+      const res = await fetch('/api/supplier');
+      const suppliers = await res.json();
+
+      supplierSelect.innerHTML = `<option value="">Select Supplier</option>`;
+      suppliers.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s.supplier_id;
+        option.textContent = s.supplier_name;
+        supplierSelect.appendChild(option);
+      });
+
+      // ✅ Preselect the supplier for this transaction
+      if (selectedSupplierId) supplierSelect.value = selectedSupplierId;
+    } catch (err) {
+      console.error('Error loading suppliers:', err);
+      supplierSelect.innerHTML = `<option value="">Error loading suppliers</option>`;
     }
   }
 
@@ -144,16 +170,15 @@
 
       currentTransactionId = tx.transaction_id;
 
-      // Populate modal fields
-      document.getElementById('supplier').value = tx.supplier.supplier_name || '';
+      // ✅ Load suppliers and select correct one
+      await loadSuppliers(tx.supplier?.supplier_id);
+
       document.getElementById('invoice_no').value = tx.invoice_no;
       document.getElementById('invoice_date').value = tx.invoice_date.split('T')[0];
       document.getElementById('payment_type').value = tx.payment_type;
       document.getElementById('amount').value = tx.amount;
 
-      // Disable inputs
       setFormDisabled(true);
-
       new bootstrap.Modal(document.getElementById('transactionModal')).show();
     } catch (err) {
       console.error(err);
@@ -169,14 +194,15 @@
     document.getElementById('saveBtn').style.display = disabled ? 'none' : 'block';
   }
 
-  // Edit button → enable inputs
+  // Enable edit mode
   document.getElementById('editBtn').addEventListener('click', () => setFormDisabled(false));
 
-  // Save button → PUT API call
+  // ✅ Save transaction with supplier change
   document.getElementById('transactionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const payload = {
+      supplier_id: Number(document.getElementById('supplier').value),
       invoice_no: Number(document.getElementById('invoice_no').value),
       invoice_date: document.getElementById('invoice_date').value + "T00:00:00.000Z",
       payment_type: document.getElementById('payment_type').value,
@@ -229,7 +255,6 @@
     loadTransactions(currentPage);
   }
 
-  // Toast
   function showToast(message, isError = false) {
     const toastContainer = document.getElementById('toastContainer');
     const toast = document.createElement('div');
@@ -244,7 +269,6 @@
     bsToast._element.addEventListener('hidden.bs.toast', () => toast.remove());
   }
 
-  // Load initial data
   loadTransactions(currentPage);
 </script>
 

@@ -8,8 +8,9 @@ const supplierViewRoutes = require('./routes/supplierViewRoutes');
 const { transaction } = require('./prisma/prismaClient');
 
 app.set('view engine', 'ejs');
-app.set("views", path.join(process.cwd(), "views"));
 
+
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 

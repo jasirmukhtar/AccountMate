@@ -1,0 +1,23 @@
+body {
+  background-color: #aec7a6;
+}
+.container {
+  margin-top: 40px;
+  max-width: 600px;
+}
+.toggle-btn-group button.active {
+  background-color: #007bff;
+  color: white;
+}
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1055;
+}
+input[disabled],
+select[disabled],
+.toggle-btn-group button[disabled] {
+  background-color: #e9ecef;
+  pointer-events: none;
+}
