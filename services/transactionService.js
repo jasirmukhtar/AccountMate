@@ -26,7 +26,7 @@ async function getTransactions(page = 1, limit = 10) {
     prisma.transaction.findMany({
       skip,
       take: limit,
-      orderBy: { invoice_date: 'asc' },   
+      orderBy: { created_at: 'desc' },   
       include: { supplier: true } 
     }),
     prisma.transaction.count()

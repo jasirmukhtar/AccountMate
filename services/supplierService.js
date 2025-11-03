@@ -63,18 +63,18 @@ async function getSupplierReportById(supplier_id) {
 async function getSupplierBalancesReport() {
   const suppliers = await prisma.supplier.findMany({
     include: {
-      transactions: true
+      transaction: true
     }
   });
 
   let totalBalance = 0;
 
   const supplierBalances = suppliers.map(supplier => {
-    const totalCR = supplier.transactions
+    const totalCR = supplier.transaction
       .filter(tx => tx.payment_type === 'CR')
       .reduce((sum, tx) => sum + tx.amount, 0);
 
-    const totalDR = supplier.transactions
+    const totalDR = supplier.transaction
       .filter(tx => tx.payment_type === 'DR')
       .reduce((sum, tx) => sum + tx.amount, 0);
 
