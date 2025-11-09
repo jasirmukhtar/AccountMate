@@ -1,26 +1,75 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supplier Balances</title>
+  <title>Supplier Balances (CMYK Report)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
-    body { background-color: #f5f6fa; }
-    .container { margin-top: 40px; max-width: 800px; }
+    body {
+      background: linear-gradient(120deg, #00BCD4, #E91E63, #FFEB3B);
+      background-size: 300% 300%;
+      animation: gradientMove 10s ease infinite;
+      font-size: 1.2rem;
+      color: #212121;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .container {
+      margin-top: 40px;
+      max-width: 850px;
+      background-color: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #E91E63;
+      text-shadow: 1px 1px #FFEB3B;
+    }
+    table {
+      border: 2px solid #212121;
+    }
+    thead {
+      background: linear-gradient(to right, #00BCD4, #E91E63);
+      color: #fff;
+    }
+    tfoot {
+      background-color: #FFEB3B;
+      font-weight: bold;
+    }
+    table th, table td {
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+    }
+    #generatePDFBtn {
+      background-color: #00BCD4;
+      border: none;
+      font-weight: bold;
+    }
+    #generatePDFBtn:hover {
+      background-color: #0097A7;
+    }
     #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h2 class="text-center mb-4">Supplier Balances</h2>
+  <h2 class="text-center mb-4">Supplier Balances (CMYK Report)</h2>
 
   <div class="mb-3 text-end">
-    <button class="btn btn-primary" id="generatePDFBtn">Generate PDF</button>
+    <button class="btn btn-lg text-white" id="generatePDFBtn">Generate PDF</button>
   </div>
 
   <table class="table table-bordered table-striped" id="supplierTable">
-    <thead class="table-dark">
+    <thead>
       <tr>
         <th>#</th>
         <th>Supplier Name</th>
@@ -41,7 +90,7 @@
 
 <div id="toastContainer"></div>
 
-<!-- jsPDF CDN -->
+<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
@@ -64,14 +113,14 @@ async function loadSupplierBalances() {
     data.suppliers.forEach((s, idx) => {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>${idx + 1}</td>
-        <td>${s.supplier_name}</td>
-        <td>${Number(s.balance).toFixed(2)}</td>
+        <td><strong>${idx + 1}</strong></td>
+        <td><strong>${s.supplier_name}</strong></td>
+        <td><strong>${Number(s.balance).toFixed(2)}</strong></td>
       `;
       tbody.appendChild(row);
     });
 
-    document.getElementById('totalBalanceCell').textContent = Number(data.totalBalance || 0).toFixed(2);
+    document.getElementById('totalBalanceCell').innerHTML = `<strong>${Number(data.totalBalance || 0).toFixed(2)}</strong>`;
 
   } catch (err) {
     console.error(err);
@@ -85,31 +134,43 @@ async function loadSupplierBalances() {
 document.getElementById('generatePDFBtn').addEventListener('click', () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  
-  // Add title
-  doc.setFontSize(18);
-  doc.text('Supplier Balances Report', 14, 22);
 
-  // Prepare table
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(233, 30, 99); // Magenta
+  doc.text('Fine Cure Medicate - LD Wazir Bagh', 14, 22);
+
   const headers = [["#", "Supplier Name", "Balance"]];
   const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
     return Array.from(row.children).map(cell => cell.textContent);
   });
 
-  // Add table
   doc.autoTable({
     startY: 30,
     head: headers,
     body: tableData,
     theme: 'grid',
-    headStyles: { fillColor: [52, 58, 64] } // Bootstrap dark
+    styles: {
+      fontSize: 13,
+      fontStyle: 'bold',
+      textColor: [0, 0, 0],
+      halign: 'center'
+    },
+    headStyles: {
+      fillColor: [0, 188, 212], // Cyan
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 14
+    },
+    alternateRowStyles: { fillColor: [255, 235, 59] }, // Yellow
+    footStyles: { fillColor: [33, 33, 33], textColor: [255, 255, 255] }
   });
 
-  // Save PDF
-  doc.save('supplier_balances.pdf');
+  doc.save('supplier_balances_cmyk.pdf');
 });
 
-// ---------- Toast function ----------
+// ---------- Toast ----------
 function showToast(message, isError=false) {
   const toastContainer = document.getElementById('toastContainer');
   const toast = document.createElement('div');
@@ -125,7 +186,6 @@ function showToast(message, isError=false) {
   bsToast._element.addEventListener('hidden.bs.toast',()=>toast.remove());
 }
 
-// Load balances on page load
 loadSupplierBalances();
 </script>
 

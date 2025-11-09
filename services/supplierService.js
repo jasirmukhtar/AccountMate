@@ -64,7 +64,8 @@ async function getSupplierBalancesReport() {
   const suppliers = await prisma.supplier.findMany({
     include: {
       transaction: true
-    }
+    },
+    orderBy: { supplier_name: 'asc' }
   });
 
   let totalBalance = 0;
