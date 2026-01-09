@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const invoice_no = +document.getElementById('invoice_no').value;
     const supplier_id = +dropdown.value;
     const payment_type = hiddenInput.value;
-    const invoiceDateVal = invoiceDate.value;
+    const invoice_date = invoiceDate.value;
 
     if (!amount || !invoice_no || !supplier_id) {
       showToast('Please fill all fields!', true);
@@ -48,18 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <strong>Supplier:</strong> ${supplierName}<br>
       <strong>Amount:</strong> ₹${amount}<br>
       <strong>Type:</strong> ${payment_type}<br>
-      <strong>Date:</strong> ${invoiceDateVal}
+      <strong>Date:</strong> ${invoice_date}
     `;
 
-    pendingPayload = { amount, invoice_no, supplier_id, payment_type, invoiceDate: invoiceDateVal };
+    pendingPayload = { amount, invoice_no, supplier_id, payment_type, invoice_date};
 
     const modalEl = document.getElementById('confirmModal');
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
     document.getElementById('confirmSubmitBtn').onclick = async () => {
-      modal.hide(); // ✅ Close modal immediately when clicked
-
+      modal.hide();
       const url = transactionId ? `/api/transaction/${transactionId}` : '/api/transaction';
       const method = transactionId ? 'PUT' : 'POST';
 

@@ -134,12 +134,12 @@ async function loadSupplierBalances() {
 document.getElementById('generatePDFBtn').addEventListener('click', () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
+  
   // Title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.setTextColor(233, 30, 99); // Magenta
-  doc.text('Fine Cure Medicate - LD Wazir Bagh', 14, 22);
+  doc.setTextColor(233, 30, 99); 
+  doc.text('Fine Cure', 14, 22);
 
   const headers = [["#", "Supplier Name", "Balance"]];
   const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
@@ -158,16 +158,16 @@ document.getElementById('generatePDFBtn').addEventListener('click', () => {
       halign: 'center'
     },
     headStyles: {
-      fillColor: [0, 188, 212], // Cyan
+      fillColor: [0, 188, 212], 
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 14
     },
-    alternateRowStyles: { fillColor: [255, 255, 255] }, // Yellow
+    alternateRowStyles: { fillColor: [255, 255, 255] }, 
     footStyles: { fillColor: [33, 33, 33], textColor: [255, 255, 255] }
   });
 
-  doc.save('supplier_balances_cmyk.pdf');
+  doc.save('supplier_balances.pdf');
 });
 
 // ---------- Toast ----------
