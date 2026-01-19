@@ -158,49 +158,105 @@
       }
     }
 
-    // ---------- Generate PDF ----------
     document.getElementById('generatePDFBtn').addEventListener('click', () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Title
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(233, 30, 99);
-      doc.text('Fine Cure', 14, 22);
+      // 1. Get Setup Data
+      const today = new Date();
+      const dateStr = today.toLocaleDateString();
+      const fileDate = today.toISOString().split('T')[0];
+      const totalBalanceText = document.getElementById('totalBalanceCell').textContent || "0.00";
 
-      const headers = [["#", "Supplier Name", "Balance"]];
-      const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
-        return Array.from(row.children).map(cell => cell.textContent);
+      // 2. Prepare Table Data & Find Min/Max for Color Grading
+      // We scrape the data from the DOM to ensure PDF matches screen exactly
+      const rawRows = Array.from(document.querySelectorAll('#supplierTableBody tr'));
+
+      let minBal = Infinity;
+      let maxBal = -Infinity;
+
+      const tableData = rawRows.map(row => {
+        const cells = Array.from(row.children);
+        const balanceVal = parseFloat(cells[2].textContent.replace(/,/g, '')); // Remove commas if any
+
+        // Update Min/Max
+        if (balanceVal < minBal) minBal = balanceVal;
+        if (balanceVal > maxBal) maxBal = balanceVal;
+
+        return [cells[0].textContent, cells[1].textContent, cells[2].textContent];
       });
 
+      // Handle edge case if only 1 supplier or all balances are 0
+      if (minBal === maxBal) maxBal = minBal + 1;
+
+      // 3. Add Header Info
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(233, 30, 99); // Brand Pink
+      doc.text('Fine Cure', 14, 22);
+
+      doc.setFontSize(11);
+      doc.setTextColor(100, 100, 100); // Gray
+      doc.text(`Date: ${dateStr}`, 196, 22, { align: 'right' });
+
+      // 4. Generate Table
       doc.autoTable({
         startY: 30,
-        head: headers,
+        head: [["#", "Supplier Name", "Balance"]],
         body: tableData,
+
+        // --- FEATURE 1: Total on Last Page Only ---
+        foot: [["", "TOTAL", totalBalanceText]],
+        showFoot: 'lastPage',
+
         theme: 'grid',
         styles: {
           fontSize: 13,
           fontStyle: 'bold',
           textColor: [0, 0, 0],
-          halign: 'center'
+          halign: 'center',
+          valign: 'middle',
+          lineWidth: 0.1,
+          lineColor: [200, 200, 200]
         },
         headStyles: {
-          fillColor: [0, 188, 212],
+          fillColor: [0, 188, 212], // Cyan
           textColor: [255, 255, 255],
-          fontStyle: 'bold',
           fontSize: 14
         },
-        alternateRowStyles: { fillColor: [255, 255, 255] },
-        footStyles: { fillColor: [33, 33, 33], textColor: [255, 255, 255] }
+        footStyles: {
+          fillColor: [33, 33, 33], // Dark Footer
+          textColor: [255, 255, 255],
+          fontSize: 14,
+          halign: 'center'
+        },
+
+        // --- FEATURE 2: Conditional Color Grading (Heatmap) ---
+        didParseCell: function (data) {
+          // Only apply logic to the 'Body' section and the 'Balance' column (index 2)
+          if (data.section === 'body' && data.column.index === 2) {
+
+            // Parse the current cell value
+            let val = parseFloat(data.cell.raw.replace(/,/g, ''));
+
+            // Calculate position in range (0.0 to 1.0)
+            let ratio = (val - minBal) / (maxBal - minBal);
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+
+            // Interpolate Color: White (255,255,255) to Red (255, 100, 100)
+            // You can adjust these numbers to change the colors
+            const red = 255;
+            const green = Math.round(255 - (155 * ratio)); // Goes from 255 down to 100
+            const blue = Math.round(255 - (155 * ratio));  // Goes from 255 down to 100
+
+            data.cell.styles.fillColor = [red, green, blue];
+          }
+        }
       });
 
-      const today = new Date();
-      const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-
-      doc.save(`supplier_balances_${formattedDate}.pdf`);
+      doc.save(`supplier_balances_${fileDate}.pdf`);
     });
-
     // ---------- Toast ----------
     function showToast(message, isError = false) {
       const toastContainer = document.getElementById('toastContainer');

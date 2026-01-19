@@ -1,16 +1,14 @@
-const prisma = require('../prisma/prismaClient');
+const prisma = require("../prisma/prismaClient");
 
 async function getAllSuppliers() {
-  
   return await prisma.supplier.findMany({
-
     select: {
       supplier_id: true,
       supplier_name: true,
       contact_number: true,
-      address: true
+      address: true,
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 }
 
@@ -19,9 +17,8 @@ async function createSupplier(data) {
 }
 
 async function getSupplierReportById(supplier_id) {
-
   supplierId = parseInt(supplier_id);
-  
+
   const supplier = await prisma.supplier.findUnique({
     where: { supplier_id: supplierId },
   });
@@ -31,15 +28,15 @@ async function getSupplierReportById(supplier_id) {
   // Get all transactions for this supplier, sorted by invoice_date or transaction_id
   const transactions = await prisma.transaction.findMany({
     where: { supplier_id: supplierId },
-    orderBy: { invoice_date: 'asc' },
+    orderBy: { invoice_date: "asc" },
   });
 
   // Compute running balance
   let runningBalance = Number(supplier.opening_balance ?? 0);
-  const report = transactions.map(tx => {
-    if (tx.payment_type === 'CR') {
+  const report = transactions.map((tx) => {
+    if (tx.payment_type === "CR") {
       runningBalance += tx.amount;
-    } else if (tx.payment_type === 'DR') {
+    } else if (tx.payment_type === "DR") {
       runningBalance -= tx.amount;
     }
     return {
@@ -60,27 +57,64 @@ async function getSupplierReportById(supplier_id) {
   };
 }
 
+// async function getSupplierBalancesReport() {
+//   const suppliers = await prisma.supplier.findMany({
+//     include: {
+//       transaction: true
+//     },
+//     orderBy: { supplier_name: 'asc'  }
+//   });
+
+//   let totalBalance = 0;
+
+//   const supplierBalances = suppliers.map(supplier => {
+//     const totalCR = supplier.transaction
+//       .filter(tx => tx.payment_type === 'CR')
+//       .reduce((sum, tx) => sum + tx.amount, 0);
+
+//     const totalDR = supplier.transaction
+//       .filter(tx => tx.payment_type === 'DR')
+//       .reduce((sum, tx) => sum + tx.amount, 0);
+
+//     const balance = Number(supplier.opening_balance || 0) + totalCR - totalDR;
+//     totalBalance += balance;
+
+//     return {
+//       supplier_id: supplier.supplier_id,
+//       supplier_name: supplier.supplier_name,
+//       opening_balance: supplier.opening_balance || 0,
+//       total_CR: totalCR,
+//       total_DR: totalDR,
+//       balance
+//     };
+//   });
+
+//   return {
+//     success: true,
+//     totalBalance,
+//     suppliers: supplierBalances
+//   };
+// }
+
 async function getSupplierBalancesReport() {
   const suppliers = await prisma.supplier.findMany({
     include: {
-      transaction: true
+      transaction: true,
     },
-    orderBy: { supplier_name: 'asc'  }
+    orderBy: { supplier_name: "asc" },
   });
 
-  let totalBalance = 0;
-
-  const supplierBalances = suppliers.map(supplier => {
+  // 1. Calculate balances for all suppliers first
+  const allCalculatedSuppliers = suppliers.map((supplier) => {
     const totalCR = supplier.transaction
-      .filter(tx => tx.payment_type === 'CR')
+      .filter((tx) => tx.payment_type === "CR")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const totalDR = supplier.transaction
-      .filter(tx => tx.payment_type === 'DR')
+      .filter((tx) => tx.payment_type === "DR")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const balance = Number(supplier.opening_balance || 0) + totalCR - totalDR;
-    totalBalance += balance;
 
     return {
       supplier_id: supplier.supplier_id,
@@ -88,21 +122,28 @@ async function getSupplierBalancesReport() {
       opening_balance: supplier.opening_balance || 0,
       total_CR: totalCR,
       total_DR: totalDR,
-      balance
+      balance,
     };
   });
+
+  // 2. Filter out suppliers with balance < 0
+  const filteredSuppliers = allCalculatedSuppliers.filter(
+    (s) => (s.balance) > 0,
+  );
+
+  // 3. Calculate the total balance based ONLY on the filtered list
+  const totalBalance = filteredSuppliers.reduce((sum, s) => sum + s.balance, 0);
 
   return {
     success: true,
     totalBalance,
-    suppliers: supplierBalances
+    suppliers: filteredSuppliers,
   };
 }
-
 
 module.exports = {
   getAllSuppliers,
   createSupplier,
   getSupplierReportById,
-  getSupplierBalancesReport
+  getSupplierBalancesReport,
 };
