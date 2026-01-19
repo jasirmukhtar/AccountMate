@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,182 +14,213 @@
       font-size: 1.2rem;
       color: #212121;
     }
+
     @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
     }
+
     .container {
       margin-top: 40px;
       max-width: 850px;
       background-color: white;
       padding: 30px;
       border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
+
     h2 {
       font-size: 2rem;
       font-weight: 900;
       color: #E91E63;
       text-shadow: 1px 1px #FFEB3B;
     }
+
     table {
       border: 2px solid #212121;
     }
+
     thead {
       background: linear-gradient(to right, #00BCD4, #E91E63);
       color: #fff;
     }
+
     tfoot {
       background-color: #FFEB3B;
       font-weight: bold;
     }
-    table th, table td {
+
+    table th,
+    table td {
       font-size: 1.1rem;
       font-weight: bold;
       text-align: center;
       vertical-align: middle;
     }
+
     #generatePDFBtn {
       background-color: #00BCD4;
       border: none;
       font-weight: bold;
     }
+
     #generatePDFBtn:hover {
       background-color: #0097A7;
     }
-    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1055;
+    }
   </style>
 </head>
-<body>
-<div class="container">
-  <h2 class="text-center mb-4">Supplier Balances (CMYK Report)</h2>
 
-  <div class="mb-3 text-end">
-    <button class="btn btn-lg text-white" id="generatePDFBtn">Generate PDF</button>
+<body>
+  <div class="container">
+    <h2 class="text-center mb-4">Supplier Balances</h2>
+
+    <div class="mb-3 text-end">
+      <button class="btn btn-lg text-white" id="generatePDFBtn">Generate PDF</button>
+    </div>
+
+    <table class="table table-bordered table-striped" id="supplierTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Supplier Name</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody id="supplierTableBody">
+        <tr>
+          <td colspan="3" class="text-center">Loading...</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="2" class="text-end">Total Balance</th>
+          <th id="totalBalanceCell">0</th>
+        </tr>
+      </tfoot>
+    </table>
   </div>
 
-  <table class="table table-bordered table-striped" id="supplierTable">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Supplier Name</th>
-        <th>Balance</th>
-      </tr>
-    </thead>
-    <tbody id="supplierTableBody">
-      <tr><td colspan="3" class="text-center">Loading...</td></tr>
-    </tbody>
-    <tfoot>
-      <tr>
-        <th colspan="2" class="text-end">Total Balance</th>
-        <th id="totalBalanceCell">0</th>
-      </tr>
-    </tfoot>
-  </table>
-</div>
+  <div id="toastContainer"></div>
 
-<div id="toastContainer"></div>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-<!-- jsPDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    async function loadSupplierBalances() {
+      try {
+        const res = await fetch('/api/supplier/balances/report', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
 
-<script>
-async function loadSupplierBalances() {
-  try {
-    const res = await fetch('/api/supplier/balances/report', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    const data = await res.json();
+        const tbody = document.getElementById('supplierTableBody');
+        tbody.innerHTML = '';
 
-    const tbody = document.getElementById('supplierTableBody');
-    tbody.innerHTML = '';
+        if (!data.success || !data.suppliers || data.suppliers.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3" class="text-center">No suppliers found</td></tr>`;
+          document.getElementById('totalBalanceCell').textContent = 0;
+          return;
+        }
 
-    if (!data.success || !data.suppliers || data.suppliers.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center">No suppliers found</td></tr>`;
-      document.getElementById('totalBalanceCell').textContent = 0;
-      return;
-    }
-
-    data.suppliers.forEach((s, idx) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
+        data.suppliers.forEach((s, idx) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
         <td><strong>${idx + 1}</strong></td>
         <td><strong>${s.supplier_name}</strong></td>
         <td><strong>${Number(s.balance).toFixed(2)}</strong></td>
       `;
-      tbody.appendChild(row);
+          tbody.appendChild(row);
+        });
+
+        document.getElementById('totalBalanceCell').innerHTML = `<strong>${Number(data.totalBalance || 0).toFixed(2)}</strong>`;
+
+      } catch (err) {
+        console.error(err);
+        showToast("Error loading supplier balances", true);
+        const tbody = document.getElementById('supplierTableBody');
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading supplier balances</td></tr>`;
+      }
+    }
+
+    // ---------- Generate PDF ----------
+    document.getElementById('generatePDFBtn').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(233, 30, 99);
+      doc.text('Fine Cure', 14, 22);
+
+      const headers = [["#", "Supplier Name", "Balance"]];
+      const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
+        return Array.from(row.children).map(cell => cell.textContent);
+      });
+
+      doc.autoTable({
+        startY: 30,
+        head: headers,
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 13,
+          fontStyle: 'bold',
+          textColor: [0, 0, 0],
+          halign: 'center'
+        },
+        headStyles: {
+          fillColor: [0, 188, 212],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 14
+        },
+        alternateRowStyles: { fillColor: [255, 255, 255] },
+        footStyles: { fillColor: [33, 33, 33], textColor: [255, 255, 255] }
+      });
+
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      doc.save(`supplier_balances_${formattedDate}.pdf`);
     });
 
-    document.getElementById('totalBalanceCell').innerHTML = `<strong>${Number(data.totalBalance || 0).toFixed(2)}</strong>`;
-
-  } catch (err) {
-    console.error(err);
-    showToast("Error loading supplier balances", true);
-    const tbody = document.getElementById('supplierTableBody');
-    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading supplier balances</td></tr>`;
-  }
-}
-
-// ---------- Generate PDF ----------
-document.getElementById('generatePDFBtn').addEventListener('click', () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.setTextColor(233, 30, 99); 
-  doc.text('Fine Cure', 14, 22);
-
-  const headers = [["#", "Supplier Name", "Balance"]];
-  const tableData = Array.from(document.querySelectorAll('#supplierTableBody tr')).map(row => {
-    return Array.from(row.children).map(cell => cell.textContent);
-  });
-
-  doc.autoTable({
-    startY: 30,
-    head: headers,
-    body: tableData,
-    theme: 'grid',
-    styles: {
-      fontSize: 13,
-      fontStyle: 'bold',
-      textColor: [0, 0, 0],
-      halign: 'center'
-    },
-    headStyles: {
-      fillColor: [0, 188, 212], 
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 14
-    },
-    alternateRowStyles: { fillColor: [255, 255, 255] }, 
-    footStyles: { fillColor: [33, 33, 33], textColor: [255, 255, 255] }
-  });
-
-  doc.save('supplier_balances.pdf');
-});
-
-// ---------- Toast ----------
-function showToast(message, isError=false) {
-  const toastContainer = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `toast align-items-center text-bg-${isError?'danger':'success'} border-0 mb-2`;
-  toast.setAttribute('role','alert');
-  toast.setAttribute('aria-live','assertive');
-  toast.setAttribute('aria-atomic','true');
-  toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
+    // ---------- Toast ----------
+    function showToast(message, isError = false) {
+      const toastContainer = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast align-items-center text-bg-${isError ? 'danger' : 'success'} border-0 mb-2`;
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
-  toastContainer.appendChild(toast);
-  const bsToast = new bootstrap.Toast(toast,{delay:3000});
-  bsToast.show();
-  bsToast._element.addEventListener('hidden.bs.toast',()=>toast.remove());
-}
+      toastContainer.appendChild(toast);
+      const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+      bsToast.show();
+      bsToast._element.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
 
-loadSupplierBalances();
-</script>
+    loadSupplierBalances();
+  </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

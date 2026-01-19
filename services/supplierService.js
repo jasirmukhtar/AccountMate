@@ -65,7 +65,7 @@ async function getSupplierBalancesReport() {
     include: {
       transaction: true
     },
-    orderBy: { supplier_name: 'asc' }
+    orderBy: { supplier_name: 'asc'  }
   });
 
   let totalBalance = 0;
