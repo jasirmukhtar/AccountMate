@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS supplier (
 );
 
 //to get models for DB Tables  npx prisma db pull
+// update prisma client with schema changes:
+ npx prisma generate

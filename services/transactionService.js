@@ -2,14 +2,14 @@ const prisma = require('../prisma/prismaClient');
 const { get } = require('../routes/supplierRoutes');
 
 async function createTransaction(transactionData) {
-
-
-try {
+  
+  try {
   return await prisma.transaction.create({
     data: {
       amount: Number(transactionData.amount),        
       invoice_no: Number(transactionData.invoice_no),
       supplier_id: Number(transactionData.supplier_id),
+      invoice_date: new Date(transactionData.invoice_date),
       payment_type: transactionData.payment_type   
     }
   });
@@ -26,7 +26,7 @@ async function getTransactions(page = 1, limit = 10) {
     prisma.transaction.findMany({
       skip,
       take: limit,
-      orderBy: { invoice_date: 'asc' },   
+      orderBy: { created_at: 'desc' },   
       include: { supplier: true } 
     }),
     prisma.transaction.count()
