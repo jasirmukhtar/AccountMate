@@ -1,21 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <%- include('partials/head') %>
-    
-  </head>
-  <body>
-    <div class="container">
-      <h2 class="text-center mb-4" id="formTitle">Create Transaction</h2>
-      <form id="transactionForm"></form>
-    </div>
+<%- include('partials/header', { title: 'New Transaction', active: 'new-transaction' }) %>
 
-    <%- include('partials/toastContainer') %>
-    <%- include('partials/confirmModal') %>
+<main class="page page--narrow">
+  <div class="panel">
+    <h2 class="text-center mb-4" id="formTitle">Create Transaction</h2>
+    <%- include('partials/transactionForm') %>
+  </div>
+</main>
 
-    <%- include('partials/scripts') %>
-
-    <script src="/js/transactionMain.js"></script>
-
-  </body>
-</html>
+<%- include('partials/footer', { scripts: ['/js/pages/transactionCreate.js'] }) %>

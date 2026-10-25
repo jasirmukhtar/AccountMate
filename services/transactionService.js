@@ -1,5 +1,4 @@
 const prisma = require('../prisma/prismaClient');
-const { get } = require('../routes/supplierRoutes');
 
 async function createTransaction(transactionData) {
   

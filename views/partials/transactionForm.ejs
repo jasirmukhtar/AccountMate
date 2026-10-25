@@ -1,0 +1,39 @@
+<%#
+  Shared transaction form, driven by createTransactionForm() in /js/components/transactionForm.js.
+  Used by the New Transaction page and the edit modal on All Transactions.
+  Options:
+    submitLabel - text of the submit button (default "Create Transaction")
+    readOnly    - start with fields disabled and the Edit button showing
+%>
+<form id="transactionForm" novalidate>
+  <div class="mb-3">
+    <label for="supplierSearch" class="form-label">Supplier</label>
+    <input type="text" id="supplierSearch" placeholder="Search supplier..." class="form-control mb-1" autocomplete="off">
+    <select id="supplierDropdown" name="supplier_id" class="form-select" required></select>
+  </div>
+  <div class="mb-3">
+    <label for="amount" class="form-label">Amount</label>
+    <input type="number" id="amount" name="amount" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="invoice_no" class="form-label">Invoice No</label>
+    <input type="number" id="invoice_no" name="invoice_no" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="invoice_date" class="form-label">Invoice Date</label>
+    <input type="date" id="invoice_date" name="invoice_date" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label d-block">Payment Type</label>
+    <div class="btn-group toggle-btn-group" role="group" aria-label="Payment type">
+      <button type="button" class="btn btn-outline-primary active" data-value="CR">CR</button>
+      <button type="button" class="btn btn-outline-primary" data-value="DR">DR</button>
+    </div>
+    <input type="hidden" id="payment_type" name="payment_type" value="CR">
+  </div>
+
+  <button type="submit" class="btn btn-success w-100" id="submitBtn"
+          <%- locals.readOnly ? 'style="display:none;"' : '' %>><%= locals.submitLabel || 'Create Transaction' %></button>
+  <button type="button" class="btn btn-warning w-100 mt-2" id="editBtn"
+          <%- locals.readOnly ? '' : 'style="display:none;"' %>>Edit</button>
+</form>

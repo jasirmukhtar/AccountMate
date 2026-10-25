@@ -4,9 +4,7 @@ const path = require('path');
 const supplierRoutes = require('./routes/supplierRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const exportRoutes = require('./routes/exportRoutes');
-const transactionViewRoutes = require('./routes/transactionViewRoutes');
-const supplierViewRoutes = require('./routes/supplierViewRoutes');
-const { transaction } = require('./prisma/prismaClient');
+const viewRoutes = require('./routes/viewRoutes');
 
 app.set('view engine', 'ejs');
 
@@ -20,16 +18,10 @@ app.use("/api/supplier", supplierRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/export", exportRoutes);
 
-// Supplier Views
-app.use("/", supplierViewRoutes);
-// Transaction Views
-app.use("/", transactionViewRoutes);
+// Pages
+app.use("/", viewRoutes);
 
-//Home Page
-app.get("/", (req, res)=>{
-    res.render("index");
-});
-
-app.listen(3000, ()=>{
-    console.log("Server is listening on port 3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, ()=>{
+    console.log(`Server is listening on port ${PORT}`);
 });

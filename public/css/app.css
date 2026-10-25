@@ -1,0 +1,213 @@
+/* ==========================================================================
+   AccountMate - global stylesheet
+   ========================================================================== */
+
+/* ---------- Design tokens ---------- */
+:root {
+  --page-bg: #f4f6f8;
+  --surface: #ffffff;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.10);
+
+  /* CR = purchase, DR = payment to supplier. Same hues everywhere. */
+  --cr: #2a78d6;
+  --cr-text: #1c5cab;
+  --cr-tint: #eaf2fc;
+  --dr: #eb6834;
+  --dr-text: #b5461a;
+  --dr-tint: #fdf0ea;
+
+  /* Net balance: positive = still payable, negative = overpaid */
+  --net-pos: #b4321f;
+  --net-neg: #006300;
+}
+
+/* ---------- Base ---------- */
+body {
+  background-color: var(--page-bg);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---------- Layout ---------- */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.page--medium { max-width: 960px; }
+.page--narrow { max-width: 600px; }
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-weight: 700;
+  margin: 0;
+}
+
+.page-header .page-subtitle {
+  color: var(--text-secondary);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.panel h5 {
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ---------- Navbar ---------- */
+.app-navbar .navbar-brand {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-navbar .nav-link.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- Stat tiles ---------- */
+.stat {
+  height: 100%;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.stat-sub {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.stat--compact { padding: 12px 16px; }
+.stat--compact .stat-label { font-size: 0.85rem; }
+.stat--compact .stat-value { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.stat--cr .stat-value { color: var(--cr-text); }
+.stat--dr .stat-value { color: var(--dr-text); }
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.swatch--cr { background: var(--cr); }
+.swatch--dr { background: var(--dr); }
+
+/* ---------- Tables ---------- */
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-light-head thead th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-bottom-color: var(--grid);
+}
+
+.table > thead > tr > th.col-cr { background-color: var(--cr); color: #fff; }
+.table > thead > tr > th.col-dr { background-color: var(--dr); color: #fff; }
+.table > tbody > tr > td.col-cr,
+.table > tfoot > tr > td.col-cr { background-color: var(--cr-tint); color: var(--cr-text); font-weight: 600; }
+.table > tbody > tr > td.col-dr,
+.table > tfoot > tr > td.col-dr { background-color: var(--dr-tint); color: var(--dr-text); font-weight: 600; }
+.table > tfoot td { font-weight: 700; }
+
+.net-pos { color: var(--net-pos); }
+.net-neg { color: var(--net-neg); }
+
+tr.row-link { cursor: pointer; }
+
+.filter-row th {
+  background-color: #f8f9fa;
+  padding: 6px;
+}
+
+.filter-row .form-control,
+.filter-row .form-select {
+  min-width: 70px;
+}
+
+/* ---------- Pagination ---------- */
+.pagination {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.pagination .page-ellipsis .page-link {
+  pointer-events: none;
+}
+
+/* ---------- Charts ---------- */
+.chart-wrap {
+  position: relative;
+  height: 320px;
+}
+
+/* ---------- Date range picker ---------- */
+.range-bar,
+.range-bar .custom-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.range-bar label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+/* ---------- Forms ---------- */
+.toggle-btn-group button.active {
+  background-color: var(--cr);
+  border-color: var(--cr);
+  color: #fff;
+}
+
+input[disabled],
+select[disabled],
+.toggle-btn-group button[disabled] {
+  background-color: #e9ecef;
+  pointer-events: none;
+}
+
+/* ---------- Toasts ---------- */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1080;
+}
