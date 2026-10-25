@@ -11,6 +11,10 @@
     #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
     tr.transaction-row { cursor: pointer; }
     tr.transaction-row:hover { background-color: #f1f1f1; }
+    .filter-row th { background-color: #f8f9fa; padding: 6px; }
+    .filter-row .form-control, .filter-row .form-select { min-width: 70px; }
+    #paginationControls { flex-wrap: wrap; row-gap: 4px; }
+    #paginationControls .page-ellipsis .page-link { pointer-events: none; }
   </style>
 </head>
 <body>
@@ -18,10 +22,16 @@
 <div class="container">
   <h2 class="text-center mb-4">Transactions</h2>
 
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <small class="text-muted" id="resultSummary">&nbsp;</small>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFiltersBtn">Clear filters</button>
+  </div>
+
   <!-- Table -->
+  <div class="table-responsive">
   <table class="table table-bordered table-striped">
-    <thead class="table-dark">
-      <tr>
+    <thead>
+      <tr class="table-dark">
         <th>#</th>
         <th>Transaction Id</th>
         <th>Supplier</th>
@@ -30,9 +40,25 @@
         <th>Payment Type</th>
         <th>Amount</th>
       </tr>
+      <tr class="filter-row">
+        <th></th>
+        <th><input type="number" class="form-control form-control-sm column-filter" data-filter="transaction_id" placeholder="Id"></th>
+        <th><input type="text" class="form-control form-control-sm column-filter" data-filter="supplier" placeholder="Search supplier"></th>
+        <th><input type="number" class="form-control form-control-sm column-filter" data-filter="invoice_no" placeholder="Invoice"></th>
+        <th><input type="date" class="form-control form-control-sm column-filter" data-filter="invoice_date"></th>
+        <th>
+          <select class="form-select form-select-sm column-filter" data-filter="payment_type">
+            <option value="">All</option>
+            <option value="CR">CR</option>
+            <option value="DR">DR</option>
+          </select>
+        </th>
+        <th><input type="number" class="form-control form-control-sm column-filter" data-filter="amount" placeholder="Amount"></th>
+      </tr>
     </thead>
     <tbody id="transactionTableBody"></tbody>
   </table>
+  </div>
 
   <!-- Pagination -->
   <nav>
@@ -96,14 +122,42 @@
   let currentPage = 1;
   const limit = 10;
   let currentTransactionId = null;
+  let requestSeq = 0;
+
+  function getFilters() {
+    const filters = {};
+    document.querySelectorAll('.column-filter').forEach(el => {
+      const value = el.value.trim();
+      if (value) filters[el.dataset.filter] = value;
+    });
+    return filters;
+  }
+
+  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 
   async function loadTransactions(page = 1) {
+    const seq = ++requestSeq;
     try {
-      const res = await fetch(`/api/transaction?page=${page}&limit=${limit}`);
+      const params = new URLSearchParams({ page, limit, ...getFilters() });
+      const res = await fetch(`/api/transaction?${params}`);
       const data = await res.json();
+
+      // Ignore responses that arrive after a newer search was started
+      if (seq !== requestSeq) return;
+
+      // Filters may shrink the result set below the current page
+      if (data.totalPages > 0 && page > data.totalPages) {
+        return changePage(data.totalPages);
+      }
 
       const tbody = document.getElementById('transactionTableBody');
       tbody.innerHTML = '';
+
+      document.getElementById('resultSummary').textContent = data.total
+        ? `Showing ${(data.page - 1) * limit + 1}–${(data.page - 1) * limit + data.transactions.length} of ${data.total} transactions`
+        : '';
 
       if (!data.transactions.length) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center">No transactions found.</td></tr>`;
@@ -115,7 +169,7 @@
           row.innerHTML = `
             <td>${(data.page-1)*limit + idx + 1}</td>
             <td>${tx.transaction_id}</td>
-            <td>${tx.supplier.supplier_name || ''}</td>
+            <td>${escapeHtml(tx.supplier.supplier_name)}</td>
             <td>${tx.invoice_no}</td>
             <td>${tx.invoice_date ? new Date(tx.invoice_date).toLocaleDateString() : ''}</td>
             <td>${tx.payment_type}</td>
@@ -236,17 +290,45 @@
     const prevDisabled = current <= 1 ? 'disabled' : '';
     const nextDisabled = current >= totalPages ? 'disabled' : '';
 
+    if (totalPages <= 1) return;
+
     pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${prevDisabled}">
       <button class="page-link" onclick="changePage(${current-1})">Previous</button></li>`);
 
-    for (let i = 1; i <= totalPages; i++) {
-      const active = i === current ? 'active' : '';
+    for (const p of getPageWindow(current, totalPages)) {
+      if (p === '…') {
+        pagination.insertAdjacentHTML('beforeend', `<li class="page-item disabled page-ellipsis">
+          <span class="page-link">…</span></li>`);
+        continue;
+      }
+      const active = p === current ? 'active' : '';
       pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active}">
-        <button class="page-link" onclick="changePage(${i})">${i}</button></li>`);
+        <button class="page-link" onclick="changePage(${p})">${p}</button></li>`);
     }
 
     pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${nextDisabled}">
       <button class="page-link" onclick="changePage(${current+1})">Next</button></li>`);
+  }
+
+  // First, last, and up to 2 pages either side of current, with ellipses for gaps,
+  // e.g. 1 … 4 5 [6] 7 8 … 60
+  function getPageWindow(current, totalPages, spread = 2) {
+    const pages = new Set([1, totalPages]);
+    for (let i = current - spread; i <= current + spread; i++) {
+      if (i >= 1 && i <= totalPages) pages.add(i);
+    }
+
+    const sorted = [...pages].sort((a, b) => a - b);
+    const result = [];
+    sorted.forEach((p, idx) => {
+      if (idx > 0) {
+        const gap = p - sorted[idx - 1];
+        if (gap === 2) result.push(p - 1);   // fill a single missing page instead of "…"
+        else if (gap > 2) result.push('…');
+      }
+      result.push(p);
+    });
+    return result;
   }
 
   function changePage(page) {
@@ -254,6 +336,21 @@
     currentPage = page;
     loadTransactions(currentPage);
   }
+
+  // Column filters: debounce typing, reset to the first page on change
+  let filterTimer = null;
+  document.querySelectorAll('.column-filter').forEach(el => {
+    const eventName = el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'input';
+    el.addEventListener(eventName, () => {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => changePage(1), 300);
+    });
+  });
+
+  document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    document.querySelectorAll('.column-filter').forEach(el => { el.value = ''; });
+    changePage(1);
+  });
 
   function showToast(message, isError = false) {
     const toastContainer = document.getElementById('toastContainer');

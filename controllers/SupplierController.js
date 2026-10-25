@@ -27,7 +27,8 @@ exports.createSupplier = async (req, res) => {
 exports.getSupplierReportById = async (req, res) => {
     
     try {
-        const supplier = await supplierService.getSupplierReportById(req.params.id);
+        const { from, to } = req.query;
+        const supplier = await supplierService.getSupplierReportById(req.params.id, from, to);
         res.json(supplier);
     } catch (error) {
         console.error('Error fetching supplier:', error);
