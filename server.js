@@ -3,6 +3,7 @@ const app = express();
 const path = require('path');
 const supplierRoutes = require('./routes/supplierRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const exportRoutes = require('./routes/exportRoutes');
 const transactionViewRoutes = require('./routes/transactionViewRoutes');
 const supplierViewRoutes = require('./routes/supplierViewRoutes');
 const { transaction } = require('./prisma/prismaClient');
@@ -17,6 +18,7 @@ app.use(express.json());
 //Backend API
 app.use("/api/supplier", supplierRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/export", exportRoutes);
 
 // Supplier Views
 app.use("/", supplierViewRoutes);

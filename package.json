@@ -12,6 +12,8 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.17.1",
+    "archiver": "^7.0.1",
+    "csv-writer": "^1.6.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "mysql2": "^3.15.2"
