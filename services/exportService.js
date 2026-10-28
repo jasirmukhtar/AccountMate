@@ -54,7 +54,7 @@ const year = today.getFullYear();
 const currentDate = `${day}-${month}-${year}`;
 console.log("Current Date:", currentDate);
 
-const zipFileName = `supplier-ledgers-${currentDate}.zip`;
+const zipFileName = `FineCureBackup-${currentDate}.zip`;
 
 const zipPath = path.join(
     exportDir,

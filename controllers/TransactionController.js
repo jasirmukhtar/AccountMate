@@ -15,10 +15,25 @@ exports.getTransactions = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
-    const result = await transactionService.getTransactions(page, limit);
+    const { transaction_id, supplier, invoice_no, invoice_date, payment_type, amount } = req.query;
+
+    const result = await transactionService.getTransactions(page, limit, {
+      transaction_id, supplier, invoice_no, invoice_date, payment_type, amount
+    });
     res.json(result);
   } catch (err) {
     console.error("Error fetching transactions:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getDashboardSummary = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const summary = await transactionService.getDashboardSummary(from, to);
+    res.json({ success: true, ...summary });
+  } catch (err) {
+    console.error("Error building dashboard summary:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

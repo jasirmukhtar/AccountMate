@@ -16,8 +16,15 @@ async function createSupplier(data) {
   return await prisma.supplier.create({ data });
 }
 
-async function getSupplierReportById(supplier_id) {
-  supplierId = parseInt(supplier_id);
+// from / to are optional "YYYY-MM-DD" strings (inclusive). Invoice dates are
+// stored as UTC midnight, so the range is applied on whole UTC days.
+async function getSupplierReportById(supplier_id, from, to) {
+  const supplierId = parseInt(supplier_id);
+  const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
+  const fromDate = isDate(from) ? new Date(`${from}T00:00:00.000Z`) : null;
+  const toDate = isDate(to)
+    ? new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000)
+    : null;
 
   const supplier = await prisma.supplier.findUnique({
     where: { supplier_id: supplierId },
@@ -25,19 +32,43 @@ async function getSupplierReportById(supplier_id) {
 
   if (!supplier) throw new Error("Supplier not found");
 
-  // Get all transactions for this supplier, sorted by invoice_date or transaction_id
+  // Balance brought forward = opening balance + everything before the range
+  let openingBalance = Number(supplier.opening_balance ?? 0);
+  if (fromDate) {
+    const prior = await prisma.transaction.groupBy({
+      by: ["payment_type"],
+      where: { supplier_id: supplierId, invoice_date: { lt: fromDate } },
+      _sum: { amount: true },
+    });
+    for (const p of prior) {
+      const sum = p._sum.amount || 0;
+      openingBalance += p.payment_type === "CR" ? sum : -sum;
+    }
+  }
+
+  const invoiceDate = {};
+  if (fromDate) invoiceDate.gte = fromDate;
+  if (toDate) invoiceDate.lt = toDate;
+
   const transactions = await prisma.transaction.findMany({
-    where: { supplier_id: supplierId },
-    orderBy: { invoice_date: "asc" },
+    where: {
+      supplier_id: supplierId,
+      ...(fromDate || toDate ? { invoice_date: invoiceDate } : {}),
+    },
+    orderBy: [{ invoice_date: "asc" }, { transaction_id: "asc" }],
   });
 
   // Compute running balance
-  let runningBalance = Number(supplier.opening_balance ?? 0);
+  let runningBalance = openingBalance;
+  let totalCR = 0;
+  let totalDR = 0;
   const report = transactions.map((tx) => {
     if (tx.payment_type === "CR") {
       runningBalance += tx.amount;
+      totalCR += tx.amount;
     } else if (tx.payment_type === "DR") {
       runningBalance -= tx.amount;
+      totalDR += tx.amount;
     }
     return {
       transaction_id: tx.transaction_id,
@@ -52,7 +83,12 @@ async function getSupplierReportById(supplier_id) {
   return {
     supplier_id: supplier.supplier_id,
     supplier_name: supplier.supplier_name,
-    opening_balance: supplier.opening_balance,
+    from: fromDate ? from : null,
+    to: toDate ? to : null,
+    opening_balance: openingBalance,
+    total_CR: totalCR,
+    total_DR: totalDR,
+    closing_balance: runningBalance,
     report,
   };
 }

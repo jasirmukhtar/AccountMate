@@ -1,46 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transactions</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <style>
-    body { background-color: #f5f6fa; }
-    .container { margin-top: 40px; max-width: 900px; }
-    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1055; }
-    tr.transaction-row { cursor: pointer; }
-    tr.transaction-row:hover { background-color: #f1f1f1; }
-  </style>
-</head>
-<body>
+<%- include('partials/header', { title: 'Transactions', active: 'transactions' }) %>
 
-<div class="container">
-  <h2 class="text-center mb-4">Transactions</h2>
+<main class="page page--medium">
+  <div class="page-header">
+    <h2>Transactions</h2>
+    <a href="/transaction" class="btn btn-primary">+ New Transaction</a>
+  </div>
 
-  <!-- Table -->
-  <table class="table table-bordered table-striped">
-    <thead class="table-dark">
-      <tr>
-        <th>#</th>
-        <th>Transaction Id</th>
-        <th>Supplier</th>
-        <th>Invoice No</th>
-        <th>Invoice Date</th>
-        <th>Payment Type</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody id="transactionTableBody"></tbody>
-  </table>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <small class="text-muted" id="resultSummary">&nbsp;</small>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFiltersBtn">Clear filters</button>
+  </div>
 
-  <!-- Pagination -->
-  <nav>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr class="table-dark">
+          <th>#</th>
+          <th>Transaction Id</th>
+          <th>Supplier</th>
+          <th>Invoice No</th>
+          <th>Invoice Date</th>
+          <th>Payment Type</th>
+          <th class="num">Amount</th>
+        </tr>
+        <tr class="filter-row">
+          <th></th>
+          <th><input type="number" class="form-control form-control-sm column-filter" data-filter="transaction_id" placeholder="Id"></th>
+          <th><input type="text" class="form-control form-control-sm column-filter" data-filter="supplier" placeholder="Search supplier"></th>
+          <th><input type="number" class="form-control form-control-sm column-filter" data-filter="invoice_no" placeholder="Invoice"></th>
+          <th><input type="date" class="form-control form-control-sm column-filter" data-filter="invoice_date"></th>
+          <th>
+            <select class="form-select form-select-sm column-filter" data-filter="payment_type">
+              <option value="">All</option>
+              <option value="CR">CR</option>
+              <option value="DR">DR</option>
+            </select>
+          </th>
+          <th><input type="number" class="form-control form-control-sm column-filter" data-filter="amount" placeholder="Amount"></th>
+        </tr>
+      </thead>
+      <tbody id="transactionTableBody"></tbody>
+    </table>
+  </div>
+
+  <nav aria-label="Transactions pages">
     <ul class="pagination justify-content-center" id="paginationControls"></ul>
   </nav>
-</div>
+</main>
 
-<!-- 🧩 Modal for viewing/editing a transaction -->
+<!-- View / edit a transaction -->
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -48,230 +56,11 @@
         <h5 class="modal-title" id="transactionModalLabel">Transaction Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-
       <div class="modal-body">
-        <form id="transactionForm">
-          <div class="mb-3">
-            <label for="supplier" class="form-label">Supplier</label>
-            <select id="supplier" class="form-select" disabled>
-              <option value="">Loading suppliers...</option>
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label for="invoice_no" class="form-label">Invoice No</label>
-            <input type="number" id="invoice_no" class="form-control" required disabled>
-          </div>
-
-          <div class="mb-3">
-            <label for="invoice_date" class="form-label">Invoice Date</label>
-            <input type="date" id="invoice_date" class="form-control" required disabled>
-          </div>
-
-          <div class="mb-3">
-            <label for="payment_type" class="form-label">Payment Type</label>
-            <select id="payment_type" class="form-select" disabled>
-              <option value="CR">CR</option>
-              <option value="DR">DR</option>
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="number" id="amount" class="form-control" required disabled>
-          </div>
-
-          <button type="button" class="btn btn-warning w-100" id="editBtn">Edit</button>
-          <button type="submit" class="btn btn-success w-100 mt-2" id="saveBtn" style="display:none;">Save Changes</button>
-        </form>
+        <%- include('partials/transactionForm', { submitLabel: 'Save Changes', readOnly: true }) %>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Toast container -->
-<div id="toastContainer"></div>
-
-<script>
-  let currentPage = 1;
-  const limit = 10;
-  let currentTransactionId = null;
-
-  async function loadTransactions(page = 1) {
-    try {
-      const res = await fetch(`/api/transaction?page=${page}&limit=${limit}`);
-      const data = await res.json();
-
-      const tbody = document.getElementById('transactionTableBody');
-      tbody.innerHTML = '';
-
-      if (!data.transactions.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">No transactions found.</td></tr>`;
-      } else {
-        data.transactions.forEach((tx, idx) => {
-          const row = document.createElement('tr');
-          row.classList.add('transaction-row');
-          row.dataset.id = tx.transaction_id;
-          row.innerHTML = `
-            <td>${(data.page-1)*limit + idx + 1}</td>
-            <td>${tx.transaction_id}</td>
-            <td>${tx.supplier.supplier_name || ''}</td>
-            <td>${tx.invoice_no}</td>
-            <td>${tx.invoice_date ? new Date(tx.invoice_date).toLocaleDateString() : ''}</td>
-            <td>${tx.payment_type}</td>
-            <td>${tx.amount}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      }
-
-      document.querySelectorAll('.transaction-row').forEach(row => {
-        row.addEventListener('click', () => openTransactionModal(row.dataset.id));
-      });
-
-      setupPagination(data.page, data.totalPages);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
-      showToast("Error loading transactions", true);
-    }
-  }
-
-  // ✅ Load suppliers dynamically for dropdown
-  async function loadSuppliers(selectedSupplierId = null) {
-    const supplierSelect = document.getElementById('supplier');
-    supplierSelect.innerHTML = `<option value="">Loading suppliers...</option>`;
-
-    try {
-      const res = await fetch('/api/supplier');
-      const suppliers = await res.json();
-
-      supplierSelect.innerHTML = `<option value="">Select Supplier</option>`;
-      suppliers.forEach(s => {
-        const option = document.createElement('option');
-        option.value = s.supplier_id;
-        option.textContent = s.supplier_name;
-        supplierSelect.appendChild(option);
-      });
-
-      // ✅ Preselect the supplier for this transaction
-      if (selectedSupplierId) supplierSelect.value = selectedSupplierId;
-    } catch (err) {
-      console.error('Error loading suppliers:', err);
-      supplierSelect.innerHTML = `<option value="">Error loading suppliers</option>`;
-    }
-  }
-
-  async function openTransactionModal(transactionId) {
-    try {
-      const res = await fetch(`/api/transaction/${transactionId}`);
-      const tx = await res.json();
-
-      if (!res.ok) return showToast("Failed to fetch transaction", true);
-
-      currentTransactionId = tx.transaction_id;
-
-      // ✅ Load suppliers and select correct one
-      await loadSuppliers(tx.supplier?.supplier_id);
-
-      document.getElementById('invoice_no').value = tx.invoice_no;
-      document.getElementById('invoice_date').value = tx.invoice_date.split('T')[0];
-      document.getElementById('payment_type').value = tx.payment_type;
-      document.getElementById('amount').value = tx.amount;
-
-      setFormDisabled(true);
-      new bootstrap.Modal(document.getElementById('transactionModal')).show();
-    } catch (err) {
-      console.error(err);
-      showToast("Error loading transaction", true);
-    }
-  }
-
-  function setFormDisabled(disabled) {
-    document.querySelectorAll('#transactionForm input, #transactionForm select').forEach(el => {
-      el.disabled = disabled;
-    });
-    document.getElementById('editBtn').style.display = disabled ? 'block' : 'none';
-    document.getElementById('saveBtn').style.display = disabled ? 'none' : 'block';
-  }
-
-  // Enable edit mode
-  document.getElementById('editBtn').addEventListener('click', () => setFormDisabled(false));
-
-  // ✅ Save transaction with supplier change
-  document.getElementById('transactionForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const payload = {
-      supplier_id: Number(document.getElementById('supplier').value),
-      invoice_no: Number(document.getElementById('invoice_no').value),
-      invoice_date: document.getElementById('invoice_date').value + "T00:00:00.000Z",
-      payment_type: document.getElementById('payment_type').value,
-      amount: Number(document.getElementById('amount').value)
-    };
-
-    try {
-      const res = await fetch(`/api/transaction/${currentTransactionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) return showToast(data.message || 'Error updating transaction', true);
-
-      showToast('Transaction updated successfully!');
-      setFormDisabled(true);
-      loadTransactions(currentPage);
-    } catch (err) {
-      console.error(err);
-      showToast('Error saving transaction', true);
-    }
-  });
-
-  function setupPagination(current, totalPages) {
-    const pagination = document.getElementById('paginationControls');
-    pagination.innerHTML = '';
-
-    const prevDisabled = current <= 1 ? 'disabled' : '';
-    const nextDisabled = current >= totalPages ? 'disabled' : '';
-
-    pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${prevDisabled}">
-      <button class="page-link" onclick="changePage(${current-1})">Previous</button></li>`);
-
-    for (let i = 1; i <= totalPages; i++) {
-      const active = i === current ? 'active' : '';
-      pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active}">
-        <button class="page-link" onclick="changePage(${i})">${i}</button></li>`);
-    }
-
-    pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${nextDisabled}">
-      <button class="page-link" onclick="changePage(${current+1})">Next</button></li>`);
-  }
-
-  function changePage(page) {
-    if (page < 1) return;
-    currentPage = page;
-    loadTransactions(currentPage);
-  }
-
-  function showToast(message, isError = false) {
-    const toastContainer = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${isError ? 'danger' : 'success'} border-0 mb-2`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
-    toastContainer.appendChild(toast);
-
-    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
-    bsToast.show();
-    bsToast._element.addEventListener('hidden.bs.toast', () => toast.remove());
-  }
-
-  loadTransactions(currentPage);
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<%- include('partials/footer', { scripts: ['/js/pages/transactions.js'] }) %>

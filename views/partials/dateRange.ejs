@@ -1,0 +1,38 @@
+<%#
+  Shared date range picker, driven by createDateRangePicker() in /js/components/dateRangePicker.js.
+  Usage: include('partials/dateRange', { id: 'dashboardRange', presets: [...], active: 'last-3-months', showApply: true })
+%>
+<%
+  const presetLabels = {
+    'this-month': 'This month',
+    'last-month': 'Last month',
+    'last-3-months': 'Last 3 months',
+    'last-6-months': 'Last 6 months',
+    'this-year': 'This year',
+    'all': 'All time',
+    'custom': 'Custom'
+  };
+  const presets = locals.presets || Object.keys(presetLabels);
+%>
+<div class="range-bar" id="<%= id %>">
+  <div class="btn-group flex-wrap" role="group" aria-label="Date range presets">
+    <% presets.forEach(name => { %>
+      <button type="button"
+              class="btn btn-sm btn-outline-secondary<%= name === locals.active ? ' active' : '' %>"
+              data-range="<%= name %>"><%= presetLabels[name] %></button>
+    <% }) %>
+  </div>
+  <div class="custom-range">
+    <div>
+      <label for="<%= id %>From" class="d-block">From</label>
+      <input type="date" id="<%= id %>From" class="form-control form-control-sm" data-range-from>
+    </div>
+    <div>
+      <label for="<%= id %>To" class="d-block">To</label>
+      <input type="date" id="<%= id %>To" class="form-control form-control-sm" data-range-to>
+    </div>
+    <% if (locals.showApply) { %>
+      <button type="button" class="btn btn-sm btn-primary" data-range-apply>Apply</button>
+    <% } %>
+  </div>
+</div>
