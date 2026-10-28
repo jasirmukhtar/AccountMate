@@ -4,7 +4,8 @@
   const tbody = document.getElementById('transactionTableBody');
   const pagination = document.getElementById('paginationControls');
   const filters = document.querySelectorAll('.column-filter');
-  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('transactionModal'));
+  const modalEl = document.getElementById('transactionModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
   let currentPage = 1;
   let currentTransactionId = null;
@@ -87,12 +88,16 @@
       });
       showToast('Transaction updated successfully!');
       form.setReadOnly(true);
+      form.focus();
       loadTransactions(currentPage);
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Error updating transaction', true);
     }
   }
+
+  // Opens on the Edit button, so Enter starts editing
+  modalEl.addEventListener('shown.bs.modal', () => form.focus());
 
   tbody.addEventListener('click', (e) => {
     const row = e.target.closest('tr[data-id]');

@@ -197,6 +197,24 @@ tr.row-link { cursor: pointer; }
   color: #fff;
 }
 
+/* Searchable dropdown (attachSupplierSearch) */
+.combo { position: relative; }
+
+.combo-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 6px 16px rgba(11, 11, 11, 0.12);
+}
+
+.combo-menu.show { display: block; }
+.combo-menu .list-group-item { padding: 6px 12px; }
+
 input[disabled],
 select[disabled],
 .toggle-btn-group button[disabled] {

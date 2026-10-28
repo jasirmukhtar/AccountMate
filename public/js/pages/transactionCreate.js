@@ -19,7 +19,7 @@
         <strong>Date:</strong> ${values.invoice_date}
       `
     });
-    if (!confirmed) return;
+    if (!confirmed) return document.getElementById('submitBtn').focus();
 
     const { supplier_name, ...payload } = values;
 
@@ -32,10 +32,12 @@
         showToast('Updated successfully');
         form.setReadOnly(true);
         title.textContent = 'View Transaction';
+        form.focus();
       } else {
         await apiRequest('/api/transaction', { method: 'POST', body: payload });
         showToast('Created successfully');
         form.reset();
+        form.focus(); // ready for the next entry
       }
     } catch (err) {
       console.error(err);
@@ -49,6 +51,7 @@
       form.setValues(tx);
       form.setReadOnly(true);
       title.textContent = 'View Transaction';
+      form.focus();
     } catch (err) {
       console.error(err);
       showToast('Failed to load transaction', true);
@@ -56,4 +59,5 @@
   }
 
   if (transactionId) form.ready.then(loadExisting);
+  else form.ready.then(form.focus);
 })();

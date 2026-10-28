@@ -4,7 +4,7 @@ document.getElementById('exportSupplierLedgerBtn')?.addEventListener('click', as
   const btn = e.currentTarget;
   btn.disabled = true;
   try {
-    await downloadFile('/api/export/supplier-ledger', 'supplier-ledgers.zip');
+    await downloadFile('/api/export/supplier-ledger', 'FineCureBackup.zip');
   } catch (err) {
     console.error('Export error:', err);
     showToast('Failed to export supplier ledgers.', true);

@@ -4,12 +4,16 @@
   Options:
     submitLabel - text of the submit button (default "Create Transaction")
     readOnly    - start with fields disabled and the Edit button showing
+  Keyboard: Enter moves to the next field, C / D or arrows switch the payment type,
+  Ctrl+Enter submits from anywhere.
 %>
 <form id="transactionForm" novalidate>
   <div class="mb-3">
     <label for="supplierSearch" class="form-label">Supplier</label>
-    <input type="text" id="supplierSearch" placeholder="Search supplier..." class="form-control mb-1" autocomplete="off">
-    <select id="supplierDropdown" name="supplier_id" class="form-select" required></select>
+    <div class="combo">
+      <input type="text" id="supplierSearch" placeholder="Search supplier..." class="form-control" autocomplete="off">
+    </div>
+    <select id="supplierDropdown" name="supplier_id" class="d-none" required></select>
   </div>
   <div class="mb-3">
     <label for="amount" class="form-label">Amount</label>

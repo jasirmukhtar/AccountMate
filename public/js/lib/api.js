@@ -33,10 +33,15 @@ function buildQuery(params = {}) {
   return str ? `?${str}` : '';
 }
 
-// Downloads a file response (e.g. a ZIP export) under the given name
-async function downloadFile(url, fileName) {
+// Downloads a file response (e.g. a ZIP export), preferring the server-sent
+// filename (Content-Disposition) over the given fallback name
+async function downloadFile(url, fallbackName) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const fileName = match ? match[1] : fallbackName;
 
   const blobUrl = URL.createObjectURL(await res.blob());
   const a = document.createElement('a');

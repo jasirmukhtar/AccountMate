@@ -1,3 +1,4 @@
+const path = require('path');
 const exportService = require('../services/exportService');
 
 exports.exportSupplierLedgerZIP = async (req, res) => {
@@ -8,7 +9,7 @@ exports.exportSupplierLedgerZIP = async (req, res) => {
 
         res.download(
             filePath,
-            'supplier-ledgers.zip',
+            path.basename(filePath),
             (error) => {
 
                 if (error) {
